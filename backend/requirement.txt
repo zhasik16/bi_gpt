@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+python-dotenv
+requests
+pydantic
+sqlite3-wrapper  # optional; sqlite3 builtin, this line harmless if pip ignores
