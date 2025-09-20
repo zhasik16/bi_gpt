@@ -1,11 +1,17 @@
-import { useState } from "react";
-import "./App.css";
+import React, { useState } from "react";
 
-export default function App() {
-  const [q, setQ] = useState("");
-  const [resp, setResp] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+type Row = Record<string, any>;
+type ApiResp = {
+  sql?: string;
+  explain?: string;
+  data?: Row[];
+};
+
+const App: React.FC = () => {
+  const [q, setQ] = useState<string>("");
+  const [resp, setResp] = useState<ApiResp | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
 
   async function send() {
     if (!q.trim()) return;
@@ -22,98 +28,130 @@ export default function App() {
 
       const data = await r.json();
       if (!r.ok) throw new Error(data.detail || JSON.stringify(data));
-      setResp(data);
+      setResp(data as ApiResp);
     } catch (e: any) {
-      setError(e.message);
+      setError(e?.message ?? "Unknown error");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="app-container">
-      <header>
-        <h1>📊 BI-GPT Мини-App</h1>
-        <p className="subtitle">Задай вопрос на русском — получи SQL и данные</p>
-      </header>
+    <div style={{ fontFamily: "Arial, sans-serif", padding: 24 }}>
+      <h2>BI-GPT Миниаппа</h2>
 
-      <div className="input-container">
+      <div style={{ marginBottom: 16, display: "flex", gap: 8 }}>
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Например: показать студентов 20 лет"
-          className="input-field"
+          style={{
+            flex: 1,
+            padding: 10,
+            borderRadius: 6,
+            border: "1px solid #ccc",
+            fontSize: 16,
+          }}
         />
-        <button onClick={send} disabled={loading} className="send-btn">
-          {loading ? "⏳ Запрос..." : "🚀 Отправить"}
+        <button
+          onClick={send}
+          disabled={loading}
+          style={{
+            padding: "10px 16px",
+            borderRadius: 6,
+            backgroundColor: "#4f46e5",
+            color: "white",
+            border: "none",
+            cursor: loading ? "not-allowed" : "pointer",
+          }}
+        >
+          {loading ? "Запрос..." : "Отправить"}
         </button>
       </div>
 
-      {error && <div className="error-box">❌ {error}</div>}
+      {error && <div style={{ color: "red", marginBottom: 16 }}>{error}</div>}
 
       {resp && (
-        <div className="result-box">
-          <h3>💡 SQL-запрос:</h3>
-          <pre className="sql-box">{resp.sql}</pre>
+        <div style={{ marginTop: 20, textAlign: "left" }}>
+          <h4>SQL-запрос:</h4>
+          <pre style={{ background: "#1e1e1e", color: "#dcdcdc", padding: 10, borderRadius: 6 }}>
+            {resp.sql}
+          </pre>
 
           {resp.explain && (
             <>
-              <h3>📖 Пояснение:</h3>
-              <div className="explain-box">{resp.explain}</div>
+              <h4>Пояснение:</h4>
+              <div style={{ background: "#f0f0f0", padding: 10, borderRadius: 6 }}>{resp.explain}</div>
             </>
           )}
 
-          <h3>📋 Результаты:</h3>
+          <h4 style={{ marginTop: 12 }}>Результаты:</h4>
+
           {resp.data && resp.data.length > 0 ? (
-            <div className="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    {Object.keys(resp.data[0]).map((c) => (
-                      <th key={c}>{c}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {resp.data.map((row: any, i: number) => (
-                    <tr key={i}>
-                      {Object.values(row).map((v, j) => (
-                        <td key={j}>{v !== null ? v.toString() : "NULL"}</td>
+            <div style={{ overflowX: "auto" }}>
+              {(() => {
+                const cols = Object.keys(resp.data![0]);
+                return (
+                  <table
+                    style={{
+                      borderCollapse: "collapse",
+                      width: "100%",
+                      marginTop: 8,
+                      minWidth: 600,
+                    }}
+                  >
+                    <thead>
+                      <tr>
+                        {cols.map((c) => (
+                          <th
+                            key={c}
+                            style={{
+                              border: "1px solid #ccc",
+                              padding: 8,
+                              background: "#333",
+                              color: "#fff",
+                              textAlign: "left",
+                            }}
+                          >
+                            {c}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {resp.data!.map((row, i) => (
+                        <tr key={i}>
+                          {cols.map((col, j) => {
+                            const v = row[col];
+                            const cell = v === null || v === undefined ? "NULL" : String(v);
+                            return (
+                              <td
+                                key={j}
+                                style={{
+                                  border: "1px solid #ccc",
+                                  padding: 8,
+                                  color: "#111",
+                                  background: i % 2 === 0 ? "#fafafa" : "#f5f5f5",
+                                }}
+                              >
+                                {cell}
+                              </td>
+                            );
+                          })}
+                        </tr>
                       ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                    </tbody>
+                  </table>
+                );
+              })()}
             </div>
           ) : (
             <div>Нет данных</div>
           )}
         </div>
       )}
-
-      <footer>
-        <p>🔗 Наши Telegram-боты:</p>
-        <div className="social-links">
-          <a
-            href="https://t.me/wealthera_bot"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="social-link"
-          >
-            <img src="https://cdn-icons-png.flaticon.com/512/2111/2111646.png" alt="Telegram" />
-            Wealthera Bot
-          </a>
-          <a
-            href="https://t.me/bmaibot_bot"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="social-link"
-          >
-            <img src="https://cdn-icons-png.flaticon.com/512/2111/2111646.png" alt="Telegram" />
-            Bmai Bot
-          </a>
-        </div>
-      </footer>
     </div>
   );
-}
+};
+
+export default App;
