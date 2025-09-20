@@ -20,7 +20,7 @@ const App: React.FC = () => {
     setResp(null);
 
     try {
-      const r = await fetch("/ask", {
+      const r = await fetch("http://localhost:8000/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: q }),
